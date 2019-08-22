@@ -71,6 +71,6 @@ predict(RandomForestModel, test_data)
 
 ---
 title: "Practical_Machine_Learning_-_Project.R"
-author: "wang"
+author: "HofmannCHFA"
 date: "2019-08-22"
 ---
