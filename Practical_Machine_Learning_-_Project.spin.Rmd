@@ -1,0 +1,76 @@
+
+```{r }
+#set the working directory to where the files are located
+setwd("C:/Users/wang/Desktop/R")
+
+#call the needed packages
+library(caret)
+library(tidyverse)
+library(randomForest)
+library(rpart)
+library(rpart.plot)
+library(corrplot)
+
+#Loading both the training and test data
+#The na.strings argument is a character vector of strings which are to be interpreted as NA values. 
+#With this argument we are telling it to consider both "NA" and the division by zero as NA values.
+#This is important for the fucntions we are going to run later.
+training_data <- read.csv('pml-training.csv', na.strings = c("NA", "#DIV/0!", ""))
+test_data <- read.csv('pml-testing.csv', na.strings = c("NA", "#DIV/0!", ""))
+
+#Let's take a look at our data
+str(training_data)
+#With the str() function we can see that there are a lot of missing values in this dataset
+#We can also see that there was some misclassification on some variables. kurtosis_yaw_belt is a
+#numerical variable that was interpreted as logical.
+#With colSums(is.na(training_data)) we can see how many of these observations are NA's
+colSums(is.na(training_data))
+#We can see that some collumns are almost entirely made of NA's, so it may be useful to remove them
+#from our analysis
+#Let's remove the variable from the analysis variables that have more than 19200 missing values
+19200/19622
+#That is is about 97.84% of missing values.
+completeColumnIndex <- colSums(is.na(training_data)) < 19200
+training_data_completeobs <- training_data[,completeColumnIndex]
+#we can see that 100 collumns were removed from the dataset that will probably greatly enhance
+#the processing efficiency of our algorithm
+
+#let's check the remaining data
+colSums(is.na(training_data_completeobs))
+#Great, it looks like the remaining collomns are all complete
+
+#we will now remove the first seven collumns of both datasets as they won't be part of our model.
+training_data_completeobs <- select(training_data_completeobs, -c(1:7))
+
+#The data we have is already subsetted in training and testing, but the project directions ask that we perform
+#cross vadidation, as with it we can get a better predction for what the out of sample error would be and 
+#reduce overfitting. So we will have to subset ou training_data into a new training dataset and a validation
+#dataset.
+#We got a pretty big dataset here, so let's use 90% of it as a training set and the other 10% as validation set
+set.seed(666)
+isTraining <- createDataPartition(training_data_completeobs$classe, p=0.90, list=FALSE)
+trainingSET <- training_data_completeobs[isTraining, ]
+validationSET <- training_data_completeobs[-isTraining, ]
+
+#Let us use Random forests as predctive model it multicollinearity  and outliers, something we would expect
+#in data coming from acelerometers data. And let's also perform a 25-fold cross validation for the algorithm.
+
+controlRandomForest <- trainControl(method="cv", 25)
+RandomForestModel <- train(classe ~., data=trainingSET, method="rf", trControl=controlRandomForest, 
+                           importance=TRUE, ntree=100)
+RandomForestModel
+
+#Ok, now let's predict in our validation set
+RandomForestValidation <- predict(RandomForestModel, validationSET)
+confusionMatrix(validationSET$classe, RandomForestValidation)
+
+#Nice, the only thing that is left is to predict the actual test set
+predict(RandomForestModel, test_data)
+```
+
+
+---
+title: "Practical_Machine_Learning_-_Project.R"
+author: "wang"
+date: "2019-08-22"
+---
